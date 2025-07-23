@@ -1,9 +1,10 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from .models import Cliente, CaixaPostal, Correspondencia, Contrato
 
 
 class ClienteSerializer(serializers.ModelSerializer):
-    documento_formatado = serializers.ReadOnlyField()
+    documento_formatado = serializers.SerializerMethodField()
     
     class Meta:
         model = Cliente
@@ -12,6 +13,10 @@ class ClienteSerializer(serializers.ModelSerializer):
             'email', 'telefone', 'endereco', 'ativo', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    @extend_schema_field(serializers.CharField)
+    def get_documento_formatado(self, obj):
+        return obj.documento_formatado
 
     def validate_documento(self, value):
         documento_limpo = ''.join(filter(str.isdigit, value))
@@ -40,9 +45,11 @@ class CaixaPostalSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
 
+    @extend_schema_field(serializers.IntegerField)
     def get_total_correspondencias(self, obj):
         return obj.correspondencias.count()
 
+    @extend_schema_field(serializers.IntegerField)
     def get_correspondencias_pendentes(self, obj):
         return obj.correspondencias.filter(status='RECEBIDA').count()
 
@@ -50,7 +57,7 @@ class CaixaPostalSerializer(serializers.ModelSerializer):
 class CorrespondenciaSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='caixa_postal.cliente.nome', read_only=True)
     caixa_numero = serializers.CharField(source='caixa_postal.numero', read_only=True)
-    dias_na_caixa = serializers.ReadOnlyField()
+    dias_na_caixa = serializers.SerializerMethodField()
     tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     
@@ -64,6 +71,10 @@ class CorrespondenciaSerializer(serializers.ModelSerializer):
             'documento_retirada', 'dias_na_caixa', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_dias_na_caixa(self, obj):
+        return obj.dias_na_caixa
 
     def validate(self, data):
         if data.get('status') == 'RETIRADA' and not data.get('data_retirada'):
@@ -89,9 +100,9 @@ class CorrespondenciaRetiradaSerializer(serializers.Serializer):
 
 class ContratoSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
-    data_vencimento = serializers.ReadOnlyField()
-    esta_vencido = serializers.ReadOnlyField()
-    valor_total = serializers.ReadOnlyField()
+    data_vencimento = serializers.SerializerMethodField()
+    esta_vencido = serializers.SerializerMethodField()
+    valor_total = serializers.SerializerMethodField()
     plano_display = serializers.CharField(source='get_plano_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     
@@ -104,6 +115,18 @@ class ContratoSerializer(serializers.ModelSerializer):
             'observacoes', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    @extend_schema_field(serializers.DateField)
+    def get_data_vencimento(self, obj):
+        return obj.data_vencimento
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_esta_vencido(self, obj):
+        return obj.esta_vencido
+
+    @extend_schema_field(serializers.DecimalField(max_digits=12, decimal_places=2))
+    def get_valor_total(self, obj):
+        return obj.valor_total
 
 
 class DashboardSerializer(serializers.Serializer):

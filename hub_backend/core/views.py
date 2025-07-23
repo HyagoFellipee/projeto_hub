@@ -3,9 +3,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import GenericAPIView
 from django.utils import timezone
 from django.db.models import Count, Q
 from datetime import timedelta
+from drf_spectacular.utils import extend_schema
 from .models import Cliente, CaixaPostal, Correspondencia, Contrato
 from .serializers import (
     ClienteSerializer, CaixaPostalSerializer, CorrespondenciaSerializer,
@@ -178,9 +180,14 @@ class ContratoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class DashboardView(APIView):
+class DashboardView(GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = DashboardSerializer
     
+    @extend_schema(
+        summary="Dashboard com estatísticas do sistema",
+        description="Retorna estatísticas gerais do sistema incluindo totais de clientes, correspondências e contratos"
+    )
     def get(self, request):
         hoje = timezone.now().date()
         semana_passada = hoje - timedelta(days=7)
@@ -225,9 +232,14 @@ class DashboardView(APIView):
         return Response(serializer.data)
 
 
-class CorrespondenciasPorClienteView(APIView):
+class CorrespondenciasPorClienteView(GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = CorrespondenciaSerializer
     
+    @extend_schema(
+        summary="Listar correspondências de um cliente",
+        description="Retorna todas as correspondências de um cliente específico"
+    )
     def get(self, request, cliente_id):
         try:
             cliente = Cliente.objects.get(id=cliente_id)
@@ -248,9 +260,16 @@ class CorrespondenciasPorClienteView(APIView):
                           status=status.HTTP_404_NOT_FOUND)
 
 
-class MarcarCorrespondenciaRetiradaView(APIView):
+class MarcarCorrespondenciaRetiradaView(GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = CorrespondenciaRetiradaSerializer
     
+    @extend_schema(
+        summary="Marcar correspondência como retirada",
+        description="Marca uma correspondência específica como retirada",
+        request=CorrespondenciaRetiradaSerializer,
+        responses={200: CorrespondenciaSerializer}
+    )
     def post(self, request, correspondencia_id):
         try:
             correspondencia = Correspondencia.objects.get(id=correspondencia_id)
@@ -271,9 +290,14 @@ class MarcarCorrespondenciaRetiradaView(APIView):
                           status=status.HTTP_404_NOT_FOUND)
 
 
-class RelatorioCorrespondenciasView(APIView):
+class RelatorioCorrespondenciasView(GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = CorrespondenciaSerializer
     
+    @extend_schema(
+        summary="Relatório de correspondências",
+        description="Gera relatório de correspondências com filtros por data"
+    )
     def get(self, request):
         data_inicio = request.query_params.get('data_inicio')
         data_fim = request.query_params.get('data_fim')

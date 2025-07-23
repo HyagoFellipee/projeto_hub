@@ -1,24 +1,53 @@
 import { useState, useEffect } from 'react';
 import { dashboardService, correspondenciaService } from '../services/api';
 
-function StatsCard({ title, value, subtitle, color = 'blue' }) {
+function StatsCard({ title, value, subtitle, color = 'blue', icon }) {
   const colorClasses = {
-    blue: 'border-blue-500 text-blue-600',
-    green: 'border-green-500 text-green-600',
-    orange: 'border-orange-500 text-orange-600',
-    red: 'border-red-500 text-red-600',
-    purple: 'border-purple-500 text-purple-600',
+    blue: 'from-blue-500 to-blue-600 border-blue-500/20',
+    green: 'from-green-500 to-green-600 border-green-500/20',
+    orange: 'from-orange-500 to-orange-600 border-orange-500/20',
+    red: 'from-red-500 to-red-600 border-red-500/20',
+    purple: 'from-purple-500 to-purple-600 border-purple-500/20',
   };
 
   return (
-    <div className={`card border-l-4 ${colorClasses[color]}`}>
+    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700 hover:border-gray-600 transition-all duration-200 group">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-2xl font-bold">{value}</p>
-          <p className="font-medium">{title}</p>
-          {subtitle && <p className="text-sm opacity-75">{subtitle}</p>}
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`p-2 rounded-lg bg-gradient-to-r ${colorClasses[color]} text-white`}>
+              {icon}
+            </div>
+            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide">
+              {title}
+            </h3>
+          </div>
+          <p className="text-3xl font-bold text-white mb-1 transition-colors duration-200">
+            {value}
+          </p>
+          {subtitle && (
+            <p className="text-sm text-gray-400">{subtitle}</p>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function MetricCard({ title, value, subtitle, children }) {
+  return (
+    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700 hover:border-gray-600 transition-all duration-200">
+      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        {title}
+      </h3>
+      {children || (
+        <div className="text-center">
+          <p className="text-4xl font-bold text-white mb-2">
+            {value}
+          </p>
+          <p className="text-gray-400">{subtitle}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -58,19 +87,39 @@ function Dashboard() {
     return 'green';
   };
 
+  const getStatusClasses = (dias) => {
+    if (dias > 30) return 'bg-red-900/20 text-red-400 border border-red-500/30';
+    if (dias > 15) return 'bg-orange-900/20 text-orange-400 border border-orange-500/30';
+    return 'bg-green-900/20 text-green-400 border border-green-500/30';
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2"></div>
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="card">
-        <p style={{color: 'red'}}>{error}</p>
-        <button onClick={loadDashboardData} className="btn-primary">
+      <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700 text-center">
+        <div className="text-red-400 mb-4">
+          <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-lg font-medium">{error}</p>
+        </div>
+        <button 
+          onClick={loadDashboardData} 
+          className="btn-primary"
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
           Tentar novamente
         </button>
       </div>
@@ -78,26 +127,46 @@ function Dashboard() {
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <button onClick={loadDashboardData} className="btn-secondary">
+    <div className="space-y-6">
+      {/* Header com botão de atualizar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <p className="text-gray-400">Visão geral do sistema de correspondências</p>
+        </div>
+        <button 
+          onClick={loadDashboardData} 
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-300 font-medium rounded-xl hover:bg-gray-600 hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
           Atualizar
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Cards de estatísticas principais */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total de Clientes"
           value={stats?.total_clientes || 0}
           subtitle={`${stats?.clientes_ativos || 0} ativos`}
           color="blue"
+          icon={
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+            </svg>
+          }
         />
         
         <StatsCard
           title="Caixas Ativas"
           value={stats?.total_caixas_ativas || 0}
           color="green"
+          icon={
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          }
         />
         
         <StatsCard
@@ -105,6 +174,11 @@ function Dashboard() {
           value={stats?.correspondencias_pendentes || 0}
           subtitle="Correspondências"
           color="orange"
+          icon={
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
         />
         
         <StatsCard
@@ -112,111 +186,112 @@ function Dashboard() {
           value={stats?.correspondencias_hoje || 0}
           subtitle="Recebidas hoje"
           color="purple"
+          icon={
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          }
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="card">
-          <h3 className="text-lg font-bold mb-4">Últimos 7 dias</h3>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">
-              {stats?.correspondencias_ultimos_7_dias || 0}
-            </p>
-            <p className="text-gray-600">Correspondências recebidas</p>
-          </div>
-        </div>
+      {/* Métricas adicionais */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MetricCard
+          title="📈 Últimos 7 dias"
+          value={stats?.correspondencias_ultimos_7_dias || 0}
+          subtitle="Correspondências recebidas"
+        />
 
-        <div className="card">
-          <h3 className="text-lg font-bold mb-4">Contratos</h3>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-green-600">
-              {stats?.contratos_ativos || 0}
-            </p>
-            <p className="text-gray-600">Contratos ativos</p>
-          </div>
-        </div>
+        <MetricCard
+          title="📋 Contratos"
+          value={stats?.contratos_ativos || 0}
+          subtitle="Contratos ativos"
+        />
       </div>
 
+      {/* Gráficos de distribuição */}
       {stats?.correspondencias_por_tipo && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="card">
-            <h3 className="text-lg font-bold mb-4">Por Tipo</h3>
-            <div className="space-y-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <MetricCard title="📊 Por Tipo">
+            <div className="space-y-3">
               {Object.entries(stats.correspondencias_por_tipo).map(([tipo, count]) => (
-                <div key={tipo} className="flex justify-between items-center">
-                  <span className="capitalize">{tipo.toLowerCase()}</span>
-                  <span className="font-bold">{count}</span>
+                <div key={tipo} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
+                  <span className="capitalize text-gray-300">{tipo.toLowerCase()}</span>
+                  <span className="font-bold text-white bg-gray-600 px-3 py-1 rounded-full text-sm">
+                    {count}
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
+          </MetricCard>
 
-          <div className="card">
-            <h3 className="text-lg font-bold mb-4">Por Status</h3>
-            <div className="space-y-2">
+          <MetricCard title="📈 Por Status">
+            <div className="space-y-3">
               {Object.entries(stats.correspondencias_por_status).map(([status, count]) => (
-                <div key={status} className="flex justify-between items-center">
-                  <span className="capitalize">
+                <div key={status} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
+                  <span className="capitalize text-gray-300">
                     {status === 'RECEBIDA' ? 'Recebidas' : 
                      status === 'RETIRADA' ? 'Retiradas' : 
                      status === 'DEVOLVIDA' ? 'Devolvidas' : status}
                   </span>
-                  <span className="font-bold">{count}</span>
+                  <span className="font-bold text-white bg-gray-600 px-3 py-1 rounded-full text-sm">
+                    {count}
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
+          </MetricCard>
         </div>
       )}
 
+      {/* Tabela de correspondências pendentes */}
       {pendentes.length > 0 && (
-        <div className="card">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold">Correspondências Pendentes</h3>
-            <span className="text-sm text-gray-600">
-              {pendentes.length} {pendentes.length === 1 ? 'item' : 'itens'}
-            </span>
+        <div className="bg-gray-800 rounded-2xl border border-gray-700">
+          <div className="p-6 border-b border-gray-700">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Correspondências Pendentes
+              </h3>
+              <span className="bg-orange-900/20 text-orange-400 px-3 py-1 rounded-full text-sm font-medium border border-orange-500/30">
+                {pendentes.length} {pendentes.length === 1 ? 'item' : 'itens'}
+              </span>
+            </div>
           </div>
           
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2">Cliente</th>
-                  <th className="text-left py-2">Tipo</th>
-                  <th className="text-left py-2">Remetente</th>
-                  <th className="text-left py-2">Recebida</th>
-                  <th className="text-left py-2">Dias</th>
+                <tr className="border-b border-gray-700">
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wide">Cliente</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wide">Tipo</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wide">Remetente</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wide">Recebida</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wide">Dias</th>
                 </tr>
               </thead>
-              <tbody>
-                {pendentes.slice(0, 10).map((item) => (
-                  <tr key={item.id} className="border-b">
-                    <td className="py-2">
+              <tbody className="divide-y divide-gray-700">
+                {pendentes.slice(0, 10).map((item, index) => (
+                  <tr key={item.id} className="hover:bg-gray-700/30 transition-colors duration-200">
+                    <td className="py-4 px-6">
                       <div>
-                        <div className="font-medium">{item.cliente_nome}</div>
-                        <div className="text-sm text-gray-600">Caixa {item.caixa_numero}</div>
+                        <div className="font-medium text-white">{item.cliente_nome}</div>
+                        <div className="text-sm text-gray-400">Caixa {item.caixa_numero}</div>
                       </div>
                     </td>
-                    <td className="py-2">
-                      <span className="px-2 py-1 bg-gray-100 rounded text-sm">
+                    <td className="py-4 px-6">
+                      <span className="inline-flex items-center -ml-3 px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm font-medium">
                         {item.tipo_display}
                       </span>
                     </td>
-                    <td className="py-2">{item.remetente || '-'}</td>
-                    <td className="py-2 text-sm text-gray-600">
+                    <td className="py-4 px-6 text-gray-300">{item.remetente || '-'}</td>
+                    <td className="py-4 px-6 text-sm text-gray-400">
                       {new Date(item.data_recebimento).toLocaleDateString('pt-BR')}
                     </td>
-                    <td className="py-2">
-                      <span 
-                        className={`px-2 py-1 rounded text-sm font-medium text-${getStatusColor(item.dias_na_caixa)}-700 bg-${getStatusColor(item.dias_na_caixa)}-100`}
-                        style={{
-                          color: getStatusColor(item.dias_na_caixa) === 'red' ? '#dc2626' : 
-                                getStatusColor(item.dias_na_caixa) === 'orange' ? '#ea580c' : '#16a34a',
-                          backgroundColor: getStatusColor(item.dias_na_caixa) === 'red' ? '#fee2e2' : 
-                                          getStatusColor(item.dias_na_caixa) === 'orange' ? '#fed7aa' : '#dcfce7'
-                        }}
-                      >
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex items-center -ml-3 px-3 py-1 rounded-full text-sm font-medium ${getStatusClasses(item.dias_na_caixa)}`}>
                         {item.dias_na_caixa} dias
                       </span>
                     </td>
@@ -226,8 +301,8 @@ function Dashboard() {
             </table>
             
             {pendentes.length > 10 && (
-              <div className="text-center mt-4">
-                <p className="text-sm text-gray-600">
+              <div className="p-4 border-t border-gray-700 text-center">
+                <p className="text-sm text-gray-400">
                   Mostrando 10 de {pendentes.length} correspondências pendentes
                 </p>
               </div>

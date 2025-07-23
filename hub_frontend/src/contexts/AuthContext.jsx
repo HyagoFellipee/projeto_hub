@@ -19,22 +19,35 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     authService.logout();
+    localStorage.removeItem('username'); // Limpar username também
     setUser(null);
     setIsAuthenticated(false);
   }, []);
 
   const checkAuthStatus = useCallback(() => {
     const token = localStorage.getItem('access_token');
+    const username = localStorage.getItem('username');
+    
     if (token) {
       setIsAuthenticated(true);
-      setUser({ authenticated: true });
+      setUser({ 
+        authenticated: true,
+        username: username || 'Usuário'
+      });
     }
     setLoading(false);
   }, []);
 
   const login = useCallback(async (credentials) => {
     const response = await authService.login(credentials);
-    setUser({ authenticated: true });
+    
+    // Salvar o username
+    localStorage.setItem('username', credentials.username);
+    
+    setUser({ 
+      authenticated: true,
+      username: credentials.username
+    });
     setIsAuthenticated(true);
     return response;
   }, []);

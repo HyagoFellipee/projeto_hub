@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'drf_spectacular',
     
     'core',
     'authentication',
@@ -62,7 +63,7 @@ WSGI_APPLICATION = 'hub_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='hub_db'),
+        'NAME': config('DB_NAME', default='hub_dev'),
         'USER': config('DB_USER', default='postgres'),
         'PASSWORD': config('DB_PASSWORD', default='PANdemo123'),
         'HOST': config('DB_HOST', default='localhost'),
@@ -113,6 +114,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
@@ -154,3 +156,13 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Swagger/OpenAPI settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'HUB - Sistema de Correspondências API',
+    'DESCRIPTION': 'API REST para gerenciamento de correspondências e caixas postais',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': '/api',
+}

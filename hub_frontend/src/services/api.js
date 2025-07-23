@@ -74,9 +74,20 @@ export const clienteService = {
 
 export const correspondenciaService = {
   list: (params = {}) => api.get('/correspondencias/', { params }),
+  get: (id) => api.get(`/correspondencias/${id}/`),
   create: (data) => api.post('/correspondencias/', data),
+  update: (id, data) => api.put(`/correspondencias/${id}/`, data),
+  delete: (id) => api.delete(`/correspondencias/${id}/`),
   marcarRetirada: (id, data) => api.post(`/correspondencias/${id}/marcar_retirada/`, data),
   pendentes: () => api.get('/correspondencias/pendentes/'),
+};
+
+export const caixaPostalService = {
+  list: (params = {}) => api.get('/caixas-postais/', { params }),
+  get: (id) => api.get(`/caixas-postais/${id}/`),
+  create: (data) => api.post('/caixas-postais/', data),
+  update: (id, data) => api.put(`/caixas-postais/${id}/`, data),
+  delete: (id) => api.delete(`/caixas-postais/${id}/`),
 };
 
 export default api;

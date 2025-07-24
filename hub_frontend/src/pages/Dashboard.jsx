@@ -183,6 +183,14 @@ function Dashboard() {
         correspondenciaService.pendentes()
       ]);
       
+      // Debug: verificar dados do dashboard
+      console.log('🔍 DEBUG Dashboard:');
+      console.log('Stats completas:', statsResponse.data);
+      console.log('Total clientes (dashboard):', statsResponse.data?.total_clientes);
+      console.log('Clientes ativos (dashboard):', statsResponse.data?.clientes_ativos);
+      console.log('Caixas ativas (dashboard):', statsResponse.data?.total_caixas_ativas);
+      console.log('Pendentes encontradas:', pendentesResponse.data?.length);
+      
       setStats(statsResponse.data);
       setPendentes(pendentesResponse.data);
       
@@ -281,9 +289,9 @@ function Dashboard() {
       {/* Cards de estatísticas principais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Total de Clientes"
-          value={stats?.total_clientes || 0}
-          subtitle={`${stats?.clientes_ativos || 0} ativos`}
+          title="Clientes Ativos"
+          value={stats?.clientes_ativos || 0}
+          subtitle={`de ${stats?.total_clientes || 0} cadastrados`}
           color="blue"
           icon={
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,6 +303,7 @@ function Dashboard() {
         <StatsCard
           title="Caixas Ativas"
           value={stats?.total_caixas_ativas || 0}
+          subtitle="Caixas em operação"
           color="green"
           icon={
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -356,6 +356,7 @@ function Clientes() {
                 onClick={() => {
                   setSearch('');
                   setFiltroTipo('');
+                  setFiltroStatus('');
                   setCurrentPage(1); // Reset apenas a página, não recarregar dados
                 }}
                 className="px-4 py-3 bg-gray-700 text-gray-300 font-medium rounded-xl hover:bg-gray-600 transition-colors duration-200"

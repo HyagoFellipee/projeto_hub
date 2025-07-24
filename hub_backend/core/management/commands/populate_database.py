@@ -6,6 +6,7 @@ import random
 from decimal import Decimal
 from faker import Faker
 import string
+import re
 
 class Command(BaseCommand):
     help = 'Create comprehensive sample data for testing'
@@ -19,8 +20,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--clientes',
             type=int,
-            default=150,
-            help='Number of clients to create (default: 150)',
+            default=500,
+            help='Number of clients to create (default: 500)',
         )
 
     def handle(self, *args, **options):
@@ -37,6 +38,42 @@ class Command(BaseCommand):
         num_clientes = options['clientes']
         self.stdout.write(f'🚀 Criando {num_clientes} clientes com dados completos...')
 
+        # ============ USAR APENAS TIPOS DO MODELO ============
+        
+        # Tipos de correspondência EXATOS do models.py
+        TIPOS_CORRESPONDENCIA = [
+            'CARTA',
+            'PACOTE', 
+            'AR',
+            'SEDEX',
+            'PAC',
+            'ENCOMENDA',
+            'DOCUMENTO',
+            'OUTRO'
+        ]
+        
+        # Status de correspondência EXATOS do models.py
+        STATUS_CORRESPONDENCIA = [
+            'RECEBIDA',
+            'RETIRADA', 
+            'DEVOLVIDA'
+        ]
+        
+        # Planos EXATOS do models.py
+        PLANOS = [
+            'BASICO',
+            'PREMIUM',
+            'EMPRESARIAL'
+        ]
+        
+        # Status de contrato EXATOS do models.py
+        STATUS_CONTRATO = [
+            'ATIVO',
+            'VENCIDO',
+            'CANCELADO',
+            'SUSPENSO'
+        ]
+        
         # ============ DADOS REALISTAS ============
         
         # Nomes de empresas realistas
@@ -89,14 +126,7 @@ class Command(BaseCommand):
         ]
         
         todos_remetentes = (remetentes_correios + remetentes_ecommerce + 
-                           remetentes_bancos + remetentes_governo + remetentes_servicos)
-        
-        # Tipos de correspondência mais realistas
-        tipos_correspondencia = [
-            'CARTA', 'PACOTE', 'ENCOMENDA', 'AR', 'SEDEX', 'PAC',
-            'DOCUMENTO', 'BOLETO', 'FATURA', 'CONTRATO', 'INTIMACAO',
-            'NOTIFICACAO', 'TELEGRAMA', 'MALOTE', 'EXPRESSA'
-        ]
+                        remetentes_bancos + remetentes_governo + remetentes_servicos)
         
         # Estados brasileiros para endereços
         estados_brasil = [
@@ -108,11 +138,54 @@ class Command(BaseCommand):
         # Planos e valores
         planos_detalhados = {
             'BASICO': {'valor': Decimal('49.90'), 'peso': 40},
-            'STANDARD': {'valor': Decimal('79.90'), 'peso': 30},
             'PREMIUM': {'valor': Decimal('129.90'), 'peso': 20},
-            'EMPRESARIAL': {'valor': Decimal('199.90'), 'peso': 8},
-            'CORPORATIVO': {'valor': Decimal('299.90'), 'peso': 2}
+            'EMPRESARIAL': {'valor': Decimal('299.90'), 'peso': 8}
         }
+
+        # ============ FUNÇÃO PARA GERAR TELEFONE BRASILEIRO ============
+        def gerar_telefone_brasileiro():
+            # DDDs válidos do Brasil
+            ddds = [
+                11, 12, 13, 14, 15, 16, 17, 18, 19,  # SP
+                21, 22, 24,  # RJ
+                27, 28,  # ES
+                31, 32, 33, 34, 35, 37, 38,  # MG
+                41, 42, 43, 44, 45, 46,  # PR
+                47, 48, 49,  # SC
+                51, 53, 54, 55,  # RS
+                61,  # DF
+                62, 64,  # GO
+                63,  # TO
+                65, 66,  # MT
+                67,  # MS
+                68,  # AC
+                69,  # RO
+                71, 73, 74, 75, 77,  # BA
+                79,  # SE
+                81, 87,  # PE
+                82,  # AL
+                83,  # PB
+                84,  # RN
+                85, 88,  # CE
+                86, 89,  # PI
+                91, 93, 94,  # PA
+                92, 97,  # AM
+                95,  # RR
+                96,  # AP
+                98, 99   # MA
+            ]
+            
+            ddd = random.choice(ddds)
+            
+            # 70% celular (9 na frente), 30% fixo
+            if random.random() < 0.7:
+                # Celular: (DD) 9XXXX-XXXX
+                numero = f"9{random.randint(1000, 9999)}{random.randint(1000, 9999)}"
+                return f"({ddd:02d}) {numero[:5]}-{numero[5:]}"
+            else:
+                # Fixo: (DD) XXXX-XXXX
+                numero = f"{random.randint(2000, 9999)}{random.randint(1000, 9999)}"
+                return f"({ddd:02d}) {numero[:4]}-{numero[4:]}"
 
         # ============ CRIAÇÃO DE CLIENTES ============
         
@@ -142,7 +215,7 @@ class Command(BaseCommand):
                     break
             
             nome = fake.name()
-            telefone = fake.phone_number()
+            telefone = gerar_telefone_brasileiro()
             endereco = f"{fake.street_address()}, {fake.city()}, {random.choice(estados_brasil)}"
             
             # 95% ativo, 5% inativo
@@ -161,7 +234,7 @@ class Command(BaseCommand):
             cliente = Cliente.objects.create(**cliente_data)
             clientes_criados.append(cliente)
             
-            if (i + 1) % 25 == 0:
+            if (i + 1) % 50 == 0:
                 self.stdout.write(f'   ✓ {i + 1}/{num_pf} PF criados...')
         
         # Criar Pessoas Jurídicas  
@@ -182,7 +255,7 @@ class Command(BaseCommand):
             sufixo = random.choice(sufixos_empresas)
             nome = f"{nome_empresa} {sufixo}"
             
-            telefone = fake.phone_number()
+            telefone = gerar_telefone_brasileiro()
             endereco = f"{fake.street_address()}, {fake.city()}, {random.choice(estados_brasil)}"
             
             # 90% ativo, 10% inativo para PJ
@@ -201,7 +274,7 @@ class Command(BaseCommand):
             cliente = Cliente.objects.create(**cliente_data)
             clientes_criados.append(cliente)
             
-            if (i + 1) % 10 == 0:
+            if (i + 1) % 20 == 0:
                 self.stdout.write(f'   ✓ {i + 1}/{num_pj} PJ criados...')
 
         self.stdout.write(self.style.SUCCESS(f'✅ {len(clientes_criados)} clientes criados!'))
@@ -267,16 +340,16 @@ class Command(BaseCommand):
                     tipo = random.choice(['PACOTE', 'ENCOMENDA', 'SEDEX', 'PAC'])
                 elif rand < peso_ecommerce + peso_servicos:
                     remetente = random.choice(remetentes_servicos)
-                    tipo = random.choice(['CARTA', 'BOLETO', 'FATURA', 'DOCUMENTO'])
+                    tipo = random.choice(['CARTA', 'DOCUMENTO'])
                 elif rand < peso_ecommerce + peso_servicos + peso_bancos:
                     remetente = random.choice(remetentes_bancos)
-                    tipo = random.choice(['CARTA', 'DOCUMENTO', 'BOLETO', 'CONTRATO'])
+                    tipo = random.choice(['CARTA', 'DOCUMENTO'])
                 elif rand < peso_ecommerce + peso_servicos + peso_bancos + peso_governo:
                     remetente = random.choice(remetentes_governo)
-                    tipo = random.choice(['DOCUMENTO', 'INTIMACAO', 'NOTIFICACAO', 'AR'])
+                    tipo = random.choice(['DOCUMENTO', 'AR'])
                 else:
                     remetente = random.choice(remetentes_correios)
-                    tipo = random.choice(tipos_correspondencia)
+                    tipo = random.choice(TIPOS_CORRESPONDENCIA)
                 
                 # Status baseado na idade da correspondência
                 if dias_atras > 60:
@@ -295,11 +368,7 @@ class Command(BaseCommand):
                     'PACOTE': f'Pacote de {remetente}',
                     'ENCOMENDA': f'Encomenda de {remetente}',
                     'CARTA': f'Correspondência de {remetente}',
-                    'BOLETO': f'Boleto de {remetente}',
-                    'FATURA': f'Fatura de {remetente}',
                     'DOCUMENTO': f'Documento de {remetente}',
-                    'INTIMACAO': f'Intimação de {remetente}',
-                    'NOTIFICACAO': f'Notificação de {remetente}',
                     'AR': f'AR de {remetente}',
                     'SEDEX': f'SEDEX de {remetente}',
                     'PAC': f'PAC de {remetente}',
@@ -332,7 +401,7 @@ class Command(BaseCommand):
                 Correspondencia.objects.create(**correspondencia_data)
                 total_correspondencias += 1
             
-            if (idx + 1) % 30 == 0:
+            if (idx + 1) % 50 == 0:
                 self.stdout.write(f'   ✓ {idx + 1}/{len(clientes_criados)} clientes processados...')
 
         self.stdout.write(self.style.SUCCESS(f'✅ {total_correspondencias} correspondências criadas!'))
@@ -349,13 +418,11 @@ class Command(BaseCommand):
             # PJ têm maior chance de planos premium
             if cliente.tipo == 'PJ':
                 planos_pesos = [
-                    ('BASICO', 10), ('STANDARD', 20), ('PREMIUM', 35),
-                    ('EMPRESARIAL', 25), ('CORPORATIVO', 10)
+                    ('BASICO', 20), ('PREMIUM', 40), ('EMPRESARIAL', 40)
                 ]
             else:
                 planos_pesos = [
-                    ('BASICO', 50), ('STANDARD', 30), ('PREMIUM', 15),
-                    ('EMPRESARIAL', 4), ('CORPORATIVO', 1)
+                    ('BASICO', 60), ('PREMIUM', 30), ('EMPRESARIAL', 10)
                 ]
             
             planos, pesos = zip(*planos_pesos)
@@ -371,7 +438,7 @@ class Command(BaseCommand):
             else:
                 duracao = random.choices([6, 12, 24], weights=[40, 45, 15])[0]
             
-            # Calcular status
+            # Calcular status baseado na data
             from dateutil.relativedelta import relativedelta
             data_vencimento = data_inicio + relativedelta(months=duracao)
             
@@ -434,7 +501,7 @@ class Command(BaseCommand):
         
         # Estatísticas por plano
         stats_planos = {}
-        for plano in planos_detalhados.keys():
+        for plano in PLANOS:
             count = Contrato.objects.filter(plano=plano).count()
             if count > 0:
                 stats_planos[plano] = count
@@ -473,5 +540,5 @@ class Command(BaseCommand):
         
         self.stdout.write('='*60)
         self.stdout.write('💡 Para testar com mais dados, execute:')
-        self.stdout.write('   python manage.py populate_database --clientes 300')
+        self.stdout.write('   python manage.py populate_database --clientes 1000')
         self.stdout.write('='*60)

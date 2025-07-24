@@ -95,7 +95,7 @@ class CorrespondenciaCreateSerializer(serializers.ModelSerializer):
 class CorrespondenciaRetiradaSerializer(serializers.Serializer):
     retirado_por = serializers.CharField(max_length=255, required=False)
     documento_retirada = serializers.CharField(max_length=18, required=False)
-    observacoes = serializers.CharField(required=False)
+    observacoes = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 class ContratoSerializer(serializers.ModelSerializer):

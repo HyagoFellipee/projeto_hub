@@ -192,7 +192,8 @@ class DashboardView(GenericAPIView):
         hoje = timezone.now().date()
         semana_passada = hoje - timedelta(days=7)
         
-        total_clientes = Cliente.objects.filter(ativo=True).count()
+        total_clientes = Cliente.objects.count()
+        clientes_ativos = Cliente.objects.filter(ativo=True).count()
         total_caixas_ativas = CaixaPostal.objects.filter(ativa=True).count()
         correspondencias_pendentes = Correspondencia.objects.filter(status='RECEBIDA').count()
         correspondencias_hoje = Correspondencia.objects.filter(
@@ -201,9 +202,7 @@ class DashboardView(GenericAPIView):
         correspondencias_ultimos_7_dias = Correspondencia.objects.filter(
             data_recebimento__date__gte=semana_passada
         ).count()
-        clientes_ativos = Cliente.objects.filter(ativo=True).count()
         contratos_ativos = Contrato.objects.filter(status='ATIVO').count()
-        
         correspondencias_por_tipo = dict(
             Correspondencia.objects.values('tipo').annotate(
                 count=Count('tipo')
@@ -218,11 +217,11 @@ class DashboardView(GenericAPIView):
         
         data = {
             'total_clientes': total_clientes,
+            'clientes_ativos': clientes_ativos,
             'total_caixas_ativas': total_caixas_ativas,
             'correspondencias_pendentes': correspondencias_pendentes,
             'correspondencias_hoje': correspondencias_hoje,
             'correspondencias_ultimos_7_dias': correspondencias_ultimos_7_dias,
-            'clientes_ativos': clientes_ativos,
             'contratos_ativos': contratos_ativos,
             'correspondencias_por_tipo': correspondencias_por_tipo,
             'correspondencias_por_status': correspondencias_por_status,

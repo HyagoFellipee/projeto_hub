@@ -52,11 +52,123 @@ function MetricCard({ title, value, subtitle, children }) {
   );
 }
 
+function Pagination({ currentPage, totalPages, totalItems, itemsPerPage, onPageChange, onItemsPerPageChange }) {
+  const getVisiblePages = () => {
+    const delta = 2;
+    const range = [];
+    const rangeWithDots = [];
+
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+      range.push(i);
+    }
+
+    if (currentPage - delta > 2) {
+      rangeWithDots.push(1, '...');
+    } else {
+      rangeWithDots.push(1);
+    }
+
+    rangeWithDots.push(...range);
+
+    if (currentPage + delta < totalPages - 1) {
+      rangeWithDots.push('...', totalPages);
+    } else {
+      rangeWithDots.push(totalPages);
+    }
+
+    return rangeWithDots;
+  };
+
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  return (
+    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border-t border-gray-700">
+      {/* Informações da paginação */}
+      <div className="flex items-center gap-4">
+        <div className="text-sm text-gray-400">
+          Mostrando <span className="font-medium text-white">{startItem}</span> até{' '}
+          <span className="font-medium text-white">{endItem}</span> de{' '}
+          <span className="font-medium text-white">{totalItems}</span> resultados
+        </div>
+        
+        {/* Seletor de itens por página */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-400">Por página:</label>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+            className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Controles de navegação */}
+      {totalPages > 1 && (
+        <div className="flex items-center gap-1">
+          {/* Botão Anterior */}
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="flex items-center gap-1 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 rounded-lg transition-all duration-200"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Anterior
+          </button>
+
+          {/* Números das páginas */}
+          <div className="flex items-center gap-1 mx-2">
+            {getVisiblePages().map((page, index) => (
+              <button
+                key={index}
+                onClick={() => typeof page === 'number' && onPageChange(page)}
+                disabled={page === '...'}
+                className={`w-10 h-10 text-sm rounded-lg transition-all duration-200 ${
+                  page === currentPage
+                    ? 'bg-gradient-to-r from-purple-500 to-blue-600 text-white font-medium'
+                    : page === '...'
+                    ? 'text-gray-500 cursor-default'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          {/* Botão Próximo */}
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="flex items-center gap-1 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 rounded-lg transition-all duration-200"
+          >
+            Próximo
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Dashboard() {
   const [stats, setStats] = useState(null);
   const [pendentes, setPendentes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Estados da paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     loadDashboardData();
@@ -73,6 +185,9 @@ function Dashboard() {
       
       setStats(statsResponse.data);
       setPendentes(pendentesResponse.data);
+      
+      // Reset para primeira página quando carrega novos dados
+      setCurrentPage(1);
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
       setError('Erro ao carregar dados do dashboard');
@@ -91,6 +206,25 @@ function Dashboard() {
     if (dias > 30) return 'bg-red-900/20 text-red-400 border border-red-500/30';
     if (dias > 15) return 'bg-orange-900/20 text-orange-400 border border-orange-500/30';
     return 'bg-green-900/20 text-green-400 border border-green-500/30';
+  };
+
+  // Cálculos da paginação
+  const totalPages = Math.ceil(pendentes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = pendentes.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    // Ajustar a página atual para não ultrapassar o limite
+    const newTotalPages = Math.ceil(pendentes.length / newItemsPerPage);
+    if (currentPage > newTotalPages) {
+      setCurrentPage(newTotalPages || 1);
+    }
   };
 
   if (loading) {
@@ -214,7 +348,9 @@ function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MetricCard title="📊 Por Tipo">
             <div className="space-y-3">
-              {Object.entries(stats.correspondencias_por_tipo).map(([tipo, count]) => (
+              {Object.entries(stats.correspondencias_por_tipo)
+                .sort(([,a], [,b]) => b - a)
+                .map(([tipo, count]) => (
                 <div key={tipo} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
                   <span className="capitalize text-gray-300">{tipo.toLowerCase()}</span>
                   <span className="font-bold text-white bg-gray-600 px-3 py-1 rounded-full text-sm">
@@ -227,7 +363,9 @@ function Dashboard() {
 
           <MetricCard title="📈 Por Status">
             <div className="space-y-3">
-              {Object.entries(stats.correspondencias_por_status).map(([status, count]) => (
+              {Object.entries(stats.correspondencias_por_status)
+                .sort(([,a], [,b]) => b - a)
+                .map(([status, count]) => (
                 <div key={status} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-lg">
                   <span className="capitalize text-gray-300">
                     {status === 'RECEBIDA' ? 'Recebidas' : 
@@ -244,7 +382,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Tabela de correspondências pendentes */}
+      {/* Tabela de correspondências pendentes com paginação */}
       {pendentes.length > 0 && (
         <div className="bg-gray-800 rounded-2xl border border-gray-700">
           <div className="p-6 border-b border-gray-700">
@@ -273,7 +411,7 @@ function Dashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {pendentes.slice(0, 10).map((item, index) => (
+                {currentItems.map((item, index) => (
                   <tr key={item.id} className="hover:bg-gray-700/30 transition-colors duration-200">
                     <td className="py-4 px-6">
                       <div>
@@ -282,7 +420,7 @@ function Dashboard() {
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="inline-flex items-center -ml-3 px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm font-medium">
+                      <span className="inline-flex items-center px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm font-medium">
                         {item.tipo_display}
                       </span>
                     </td>
@@ -291,23 +429,25 @@ function Dashboard() {
                       {new Date(item.data_recebimento).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="py-4 px-6">
-                      <span className={`inline-flex items-center -ml-3 px-3 py-1 rounded-full text-sm font-medium ${getStatusClasses(item.dias_na_caixa)}`}>
-                        {item.dias_na_caixa} dias
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusClasses(item.dias_na_caixa)}`}>
+                        {item.dias_na_caixa} {item.dias_na_caixa === 1 ? 'dia' : 'dias'}
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            
-            {pendentes.length > 10 && (
-              <div className="p-4 border-t border-gray-700 text-center">
-                <p className="text-sm text-gray-400">
-                  Mostrando 10 de {pendentes.length} correspondências pendentes
-                </p>
-              </div>
-            )}
           </div>
+
+          {/* Componente de Paginação */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={pendentes.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
         </div>
       )}
     </div>

@@ -90,6 +90,24 @@ function Correspondencias() {
           }
         }
       }
+
+      if (caixasRes.data.results && caixasRes.data.next) {
+        let nextUrl = caixasRes.data.next;
+        while (nextUrl) {
+          try {
+            const urlParams = new URL(nextUrl).searchParams;
+            const nextResponse = await caixaPostalService.list({
+              page: urlParams.get('page'),
+              page_size: urlParams.get('page_size') || 1000,
+            });
+            allCaixas = [...allCaixas, ...(nextResponse.data.results || [])];
+            nextUrl = nextResponse.data.next;
+          } catch (error) {
+            console.error('Erro ao carregar página adicional de caixas:', error);
+            break;
+          }
+        }
+      }
       
       setCorrespondencias(allCorrespondencias);
       setClientes(allClientes);
@@ -162,6 +180,24 @@ function Correspondencias() {
             nextUrl = nextResponse.data.next;
           } catch (error) {
             console.error('Erro ao carregar página adicional de clientes:', error);
+            break;
+          }
+        }
+      }
+
+      if (caixasRes.data.results && caixasRes.data.next) {
+        let nextUrl = caixasRes.data.next;
+        while (nextUrl) {
+          try {
+            const urlParams = new URL(nextUrl).searchParams;
+            const nextResponse = await caixaPostalService.list({
+              page: urlParams.get('page'),
+              page_size: urlParams.get('page_size') || 1000,
+            });
+            allCaixas = [...allCaixas, ...(nextResponse.data.results || [])];
+            nextUrl = nextResponse.data.next;
+          } catch (error) {
+            console.error('Erro ao carregar página adicional de caixas:', error);
             break;
           }
         }
@@ -498,7 +534,6 @@ function Correspondencias() {
                 <tbody className="divide-y divide-gray-700">
                   {currentItems.map((correspondencia) => (
                     <tr key={correspondencia.id} className="hover:bg-gray-700/30 transition-colors duration-200">
-                      {/* COLUNA 1: Cliente / Caixa */}
                       <td className="py-4 px-6 w-48">
                         <div>
                           <div className="font-medium text-white truncate" title={correspondencia.cliente_nome}>
@@ -513,7 +548,6 @@ function Correspondencias() {
                         </div>
                       </td>
                       
-                      {/* COLUNA 2: Descrição */}
                       <td className="py-4 px-6 w-64">
                         <div>
                           <div className="font-medium text-white break-words" title={correspondencia.descricao}>
@@ -527,21 +561,18 @@ function Correspondencias() {
                         </div>
                       </td>
                       
-                      {/* COLUNA 3: Tipo */}
                       <td className="py-4 px-6 w-32">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getTipoColor(correspondencia.tipo)}`}>
                           {correspondencia.tipo_display || correspondencia.tipo}
                         </span>
                       </td>
                       
-                      {/* COLUNA 4: Remetente */}
                       <td className="py-4 px-6 w-48">
                         <div className="text-sm text-gray-300 truncate" title={correspondencia.remetente}>
                           {truncateText(correspondencia.remetente, 25)}
                         </div>
                       </td>
                       
-                      {/* COLUNA 5: Recebida em */}
                       <td className="py-4 px-6 w-32">
                         <div className="text-sm text-gray-300">
                           {new Date(correspondencia.data_recebimento).toLocaleDateString('pt-BR', {
@@ -552,21 +583,18 @@ function Correspondencias() {
                         </div>
                       </td>
                       
-                      {/* COLUNA 6: Status */}
                       <td className="py-4 px-6 w-32">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(correspondencia.status)}`}>
                           {correspondencia.status_display || correspondencia.status}
                         </span>
                       </td>
                       
-                      {/* COLUNA 7: Dias */}
                       <td className="py-4 px-6 w-32">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getDiasColor(correspondencia.dias_na_caixa, correspondencia.status)}`}>
                           {correspondencia.dias_na_caixa} {correspondencia.dias_na_caixa === 1 ? 'dia' : 'dias'}
                         </span>
                       </td>
                       
-                      {/* COLUNA 8: Ações */}
                       <td className="py-4 px-6 w-40">
                         <div className="flex gap-2">
                           {correspondencia.status === 'RECEBIDA' && (
@@ -613,6 +641,7 @@ function Correspondencias() {
         <CorrespondenciaModal
           correspondencia={correspondenciaParaEditar}
           caixasPostais={caixasPostais}
+          clientes={clientes}
           onClose={closeModal}
           onSave={() => {
             loadData();

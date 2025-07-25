@@ -1,34 +1,41 @@
 import { useState, useEffect, useRef } from 'react';
 import { correspondenciaService } from '../../services/api';
 
-// Componente de Autocomplete para Caixas Postais
-function CaixaPostalAutocomplete({ value, onChange, caixasPostais, placeholder = "Buscar por cliente..." }) {
+function ClienteCaixaAutocomplete({ value, onChange, clientes, caixasPostais, placeholder = "Buscar cliente..." }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCaixa, setSelectedCaixa] = useState(null);
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Encontrar caixa selecionada quando value muda
   useEffect(() => {
+    if (value && selectedCaixa && selectedCaixa.id.toString() === value) {
+      return;
+    }
+    
     if (value) {
       const caixa = caixasPostais.find(c => c.id.toString() === value);
-      setSelectedCaixa(caixa);
-      setSearchTerm(caixa ? caixa.cliente_nome : '');
+      if (caixa) {
+        setSelectedCaixa(caixa);
+        const cliente = clientes.find(cl => cl.id === caixa.cliente);
+        setSearchTerm(cliente ? cliente.nome : '');
+      } else {
+        const cliente = clientes.find(cl => cl.id.toString() === value);
+        if (cliente) {
+          setSearchTerm(cliente.nome);
+        }
+      }
     } else {
       setSelectedCaixa(null);
       setSearchTerm('');
     }
-  }, [value, caixasPostais]);
+  }, [value, caixasPostais, clientes, selectedCaixa]);
 
-  // Filtrar caixas baseado na busca por cliente
-  const filteredCaixas = caixasPostais.filter(caixa =>
-    caixa.cliente_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    caixa.numero?.includes(searchTerm) ||
-    caixa.cliente_documento?.includes(searchTerm)
+  const filteredClientes = clientes.filter(cliente =>
+    cliente.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cliente.documento?.includes(searchTerm)
   ).slice(0, 10);
 
-  // Fechar dropdown quando clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -50,11 +57,16 @@ function CaixaPostalAutocomplete({ value, onChange, caixasPostais, placeholder =
     }
   };
 
-  const handleCaixaSelect = (caixa) => {
-    setSelectedCaixa(caixa);
-    setSearchTerm(caixa.cliente_nome);
-    setIsOpen(false);
-    onChange(caixa.id.toString());
+  const handleClienteSelect = (cliente) => {
+    const caixa = caixasPostais.find(c => c.cliente === cliente.id);
+    if (caixa) {
+      setSelectedCaixa(caixa);
+      setSearchTerm(cliente.nome);
+      setIsOpen(false);
+      onChange(caixa.id.toString());
+    } else {
+      alert(`Cliente "${cliente.nome}" não possui caixa postal. Crie uma caixa postal primeiro no cadastro de clientes.`);
+    }
   };
 
   const handleClear = () => {
@@ -68,7 +80,7 @@ function CaixaPostalAutocomplete({ value, onChange, caixasPostais, placeholder =
     <div className="relative" ref={dropdownRef}>
       <div className="relative">
         <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
         <input
           ref={inputRef}
@@ -95,40 +107,43 @@ function CaixaPostalAutocomplete({ value, onChange, caixasPostais, placeholder =
 
       {isOpen && searchTerm && (
         <div className="absolute z-50 w-full mt-1 bg-gray-700 border border-gray-600 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-          {filteredCaixas.length > 0 ? (
+          {filteredClientes.length > 0 ? (
             <>
-              {filteredCaixas.map((caixa) => (
-                <button
-                  key={caixa.id}
-                  type="button"
-                  onClick={() => handleCaixaSelect(caixa)}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-600 transition-colors duration-200 border-b border-gray-600 last:border-b-0"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-white truncate">{caixa.cliente_nome}</div>
-                      <div className="text-sm text-gray-400 flex items-center gap-2">
-                        <span className="bg-purple-900/20 text-purple-400 px-2 py-1 rounded-full text-xs">
-                          Caixa {caixa.numero}
-                        </span>
-                        <span className="font-mono text-xs">{caixa.cliente_documento}</span>
+              {filteredClientes.map((cliente) => {
+                const caixa = caixasPostais.find(c => c.cliente === cliente.id);
+                if (!caixa) {
+                  console.log('Cliente sem caixa:', cliente.nome, cliente.id);
+                }
+                return (
+                  <button
+                    key={cliente.id}
+                    type="button"
+                    onClick={() => handleClienteSelect(cliente)}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-600 transition-colors duration-200 border-b border-gray-600 last:border-b-0"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-white truncate">{cliente.nome}</div>
+                        <div className="text-sm text-gray-400 flex items-center gap-2">
+                          {caixa && (
+                            <span className="bg-purple-900/20 text-purple-400 px-2 py-1 rounded-full text-xs">
+                              Caixa {caixa.numero}
+                            </span>
+                          )}
+                          <span className="font-mono text-xs">{cliente.documento}</span>
+                        </div>
                       </div>
                     </div>
-                    {selectedCaixa?.id === caixa.id && (
-                      <svg className="w-5 h-5 text-purple-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </>
           ) : (
             <div className="px-4 py-3 text-gray-400 text-center">
               <svg className="w-8 h-8 mx-auto mb-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              Nenhuma caixa postal encontrada
+              Nenhum cliente encontrado
             </div>
           )}
         </div>
@@ -137,13 +152,11 @@ function CaixaPostalAutocomplete({ value, onChange, caixasPostais, placeholder =
   );
 }
 
-function CorrespondenciaModal({ correspondencia, caixasPostais, onClose, onSave }) {
-  // Função para obter data/hora atual no horário de Brasília
+function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClose, onSave }) {
   const getBrasiliaDateTime = () => {
     const now = new Date();
-    // Ajustar para horário de Brasília (UTC-3)
-    const brasiliaOffset = -3 * 60; // -3 horas em minutos
-    const localOffset = now.getTimezoneOffset(); // offset local em minutos
+    const brasiliaOffset = -3 * 60;
+    const localOffset = now.getTimezoneOffset();
     const brasiliaTime = new Date(now.getTime() + (localOffset - brasiliaOffset) * 60 * 1000);
     return brasiliaTime.toISOString().slice(0, 16);
   };
@@ -238,7 +251,7 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, onClose, onSave 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Caixa Postal *
+                  Cliente - Caixa Postal *
                 </label>
                 {correspondencia ? (
                   <div className="relative">
@@ -262,9 +275,10 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, onClose, onSave 
                     </div>
                   </div>
                 ) : (
-                  <CaixaPostalAutocomplete
+                  <ClienteCaixaAutocomplete
                     value={formData.caixa_postal}
                     onChange={(value) => handleChange('caixa_postal', value)}
+                    clientes={clientes}
                     caixasPostais={caixasPostais}
                     placeholder="Buscar cliente para selecionar caixa postal..."
                   />

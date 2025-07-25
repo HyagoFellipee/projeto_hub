@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: hub_postgres
+    environment:
+      POSTGRES_DB: hub_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: PANdemo123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./hub_backend
+    container_name: hub_backend
+    environment:
+      - SECRET_KEY=django-insecure-hub-projeto-secret-key-change-in-production
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - DB_NAME=hub_db
+      - DB_USER=postgres
+      - DB_PASSWORD=PANdemo123
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./hub_backend:/app
+    restart: unless-stopped
+    command: sh -c "
+      sleep 10 &&
+      python manage.py migrate &&
+      python manage.py populate_database --clear --clientes 50 &&
+      python manage.py runserver 0.0.0.0:8000
+      "
+
+  frontend:
+    build: ./hub_frontend
+    container_name: hub_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    command: sh -c "sleep 5 && npx vite --host 0.0.0.0 --port 5173 --force"
+
+volumes:
+  postgres_data:

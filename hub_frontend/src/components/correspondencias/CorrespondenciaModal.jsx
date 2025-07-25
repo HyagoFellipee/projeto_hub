@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { correspondenciaService } from '../../services/api';
+import ConfirmationModal from './ConfirmationModal';
 
 function ClienteCaixaAutocomplete({ value, onChange, clientes, caixasPostais, placeholder = "Buscar cliente..." }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,7 +30,7 @@ function ClienteCaixaAutocomplete({ value, onChange, clientes, caixasPostais, pl
       setSelectedCaixa(null);
       setSearchTerm('');
     }
-  }, [value, caixasPostais, clientes, selectedCaixa]);
+  }, [value, caixasPostais, clientes]);
 
   const filteredClientes = clientes.filter(cliente =>
     cliente.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,9 +112,6 @@ function ClienteCaixaAutocomplete({ value, onChange, clientes, caixasPostais, pl
             <>
               {filteredClientes.map((cliente) => {
                 const caixa = caixasPostais.find(c => c.cliente === cliente.id);
-                if (!caixa) {
-                  console.log('Cliente sem caixa:', cliente.nome, cliente.id);
-                }
                 return (
                   <button
                     key={cliente.id}
@@ -154,11 +152,9 @@ function ClienteCaixaAutocomplete({ value, onChange, clientes, caixasPostais, pl
 
 function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClose, onSave }) {
   const getBrasiliaDateTime = () => {
-    const now = new Date();
-    const brasiliaOffset = -3 * 60;
-    const localOffset = now.getTimezoneOffset();
-    const brasiliaTime = new Date(now.getTime() + (localOffset - brasiliaOffset) * 60 * 1000);
-    return brasiliaTime.toISOString().slice(0, 16);
+    const offset = -3 * 60 * 60 * 1000;
+    const now = new Date(Date.now() + offset);
+    return now.toISOString().slice(0, 16);
   };
 
   const [formData, setFormData] = useState({
@@ -174,11 +170,27 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    const dataRecebimento = new Date(formData.data_recebimento);
+    const agora = new Date();
+    
+    if (dataRecebimento > agora) {
+      setError('A data de recebimento não pode ser no futuro.');
+      return;
+    }
+    
+    setError('');
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     setLoading(true);
     setError('');
+    setShowConfirmation(false);
 
     try {
       const dataToSend = {
@@ -193,8 +205,6 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
       }
       onSave();
     } catch (error) {
-      console.error('Erro ao salvar correspondência:', error);
-      
       let errorMessage = 'Erro ao salvar correspondência';
       if (error.response?.data) {
         if (error.response.data.detail) {
@@ -325,7 +335,7 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
                 maxLength="500"
                 value={formData.descricao}
                 onChange={(e) => handleChange('descricao', e.target.value)}
-                placeholder="Descreva a correspondência... (máximo 500 caracteres)"
+                placeholder="Descreva a correspondência..."
                 required
               />
               <div className="text-xs text-gray-500 mt-1">
@@ -342,7 +352,7 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
                   type="text"
                   maxLength="200"
                   className="w-full px-4 py-3 bg-gray-700 border-2 border-gray-600 rounded-xl text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all duration-200"
-                  placeholder="Nome do remetente (máximo 200 caracteres)"
+                  placeholder="Nome do remetente"
                   value={formData.remetente}
                   onChange={(e) => handleChange('remetente', e.target.value)}
                   required
@@ -360,7 +370,7 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
                   type="text"
                   maxLength="50"
                   className="w-full px-4 py-3 bg-gray-700 border-2 border-gray-600 rounded-xl text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all duration-200 font-mono"
-                  placeholder="BR123456789BR (máximo 50 caracteres)"
+                  placeholder="BR123456789BR"
                   value={formData.codigo_rastreamento}
                   onChange={(e) => handleChange('codigo_rastreamento', e.target.value)}
                 />
@@ -377,6 +387,7 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
               <input
                 type="datetime-local"
                 lang="pt-BR"
+                max={new Date().toISOString().slice(0, 16)}
                 className="w-full px-4 py-3 bg-gray-700 border-2 border-gray-600 rounded-xl text-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all duration-200"
                 value={formData.data_recebimento}
                 onChange={(e) => handleChange('data_recebimento', e.target.value)}
@@ -397,7 +408,7 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
                 maxLength="1000"
                 value={formData.observacoes}
                 onChange={(e) => handleChange('observacoes', e.target.value)}
-                placeholder="Observações adicionais... (máximo 1000 caracteres)"
+                placeholder="Observações adicionais..."
               />
               <div className="text-xs text-gray-500 mt-1">
                 {formData.observacoes.length}/1000 caracteres
@@ -414,30 +425,28 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
               </button>
               <button 
                 type="submit" 
-                disabled={loading} 
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-200"
               >
-                {loading ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Salvar
-                  </>
-                )}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {correspondencia ? 'Atualizar' : 'Criar'}
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showConfirmation}
+        onClose={() => setShowConfirmation(false)}
+        onConfirm={handleConfirmSubmit}
+        title={correspondencia ? 'Confirmar Edição' : 'Confirmar Criação'}
+        message={correspondencia ? 'Tem certeza que deseja atualizar esta correspondência?' : 'Tem certeza que deseja criar esta correspondência?'}
+        confirmText={correspondencia ? 'Atualizar' : 'Criar'}
+        type={correspondencia ? 'edit' : 'create'}
+        loading={loading}
+      />
     </div>
   );
 }

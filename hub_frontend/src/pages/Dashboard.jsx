@@ -84,7 +84,6 @@ function Pagination({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
 
   return (
     <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border-t border-gray-700">
-      {/* Informações da paginação */}
       <div className="flex items-center gap-4">
         <div className="text-sm text-gray-400">
           Mostrando <span className="font-medium text-white">{startItem}</span> até{' '}
@@ -92,7 +91,6 @@ function Pagination({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
           <span className="font-medium text-white">{totalItems}</span> resultados
         </div>
         
-        {/* Seletor de itens por página */}
         <div className="flex items-center gap-2">
           <label className="text-sm text-gray-400">Por página:</label>
           <select
@@ -108,10 +106,8 @@ function Pagination({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
         </div>
       </div>
 
-      {/* Controles de navegação */}
       {totalPages > 1 && (
         <div className="flex items-center gap-1">
-          {/* Botão Anterior */}
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
@@ -123,7 +119,6 @@ function Pagination({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
             Anterior
           </button>
 
-          {/* Números das páginas */}
           <div className="flex items-center gap-1 mx-2">
             {getVisiblePages().map((page, index) => (
               <button
@@ -143,7 +138,6 @@ function Pagination({ currentPage, totalPages, totalItems, itemsPerPage, onPageC
             ))}
           </div>
 
-          {/* Botão Próximo */}
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
@@ -166,7 +160,6 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // Estados da paginação
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -183,31 +176,15 @@ function Dashboard() {
         correspondenciaService.pendentes()
       ]);
       
-      // Debug: verificar dados do dashboard
-      console.log('🔍 DEBUG Dashboard:');
-      console.log('Stats completas:', statsResponse.data);
-      console.log('Total clientes (dashboard):', statsResponse.data?.total_clientes);
-      console.log('Clientes ativos (dashboard):', statsResponse.data?.clientes_ativos);
-      console.log('Caixas ativas (dashboard):', statsResponse.data?.total_caixas_ativas);
-      console.log('Pendentes encontradas:', pendentesResponse.data?.length);
-      
       setStats(statsResponse.data);
       setPendentes(pendentesResponse.data);
       
-      // Reset para primeira página quando carrega novos dados
       setCurrentPage(1);
     } catch (error) {
-      console.error('Erro ao carregar dashboard:', error);
       setError('Erro ao carregar dados do dashboard');
     } finally {
       setLoading(false);
     }
-  };
-
-  const getStatusColor = (dias) => {
-    if (dias > 30) return 'red';
-    if (dias > 15) return 'orange';
-    return 'green';
   };
 
   const getStatusClasses = (dias) => {
@@ -216,7 +193,6 @@ function Dashboard() {
     return 'bg-green-900/20 text-green-400 border border-green-500/30';
   };
 
-  // Cálculos da paginação
   const totalPages = Math.ceil(pendentes.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -228,7 +204,6 @@ function Dashboard() {
 
   const handleItemsPerPageChange = (newItemsPerPage) => {
     setItemsPerPage(newItemsPerPage);
-    // Ajustar a página atual para não ultrapassar o limite
     const newTotalPages = Math.ceil(pendentes.length / newItemsPerPage);
     if (currentPage > newTotalPages) {
       setCurrentPage(newTotalPages || 1);
@@ -270,7 +245,6 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header com botão de atualizar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <p className="text-gray-400">Visão geral do sistema de correspondências</p>
@@ -286,7 +260,6 @@ function Dashboard() {
         </button>
       </div>
 
-      {/* Cards de estatísticas principais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Clientes Ativos"
@@ -337,25 +310,23 @@ function Dashboard() {
         />
       </div>
 
-      {/* Métricas adicionais */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <MetricCard
-          title="📈 Últimos 7 dias"
+          title="Últimos 7 dias"
           value={stats?.correspondencias_ultimos_7_dias || 0}
           subtitle="Correspondências recebidas"
         />
 
         <MetricCard
-          title="📋 Contratos"
+          title="Contratos"
           value={stats?.contratos_ativos || 0}
           subtitle="Contratos ativos"
         />
       </div>
 
-      {/* Gráficos de distribuição */}
       {stats?.correspondencias_por_tipo && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <MetricCard title="📊 Por Tipo">
+          <MetricCard title="Por Tipo">
             <div className="space-y-3">
               {Object.entries(stats.correspondencias_por_tipo)
                 .sort(([,a], [,b]) => b - a)
@@ -370,7 +341,7 @@ function Dashboard() {
             </div>
           </MetricCard>
 
-          <MetricCard title="📈 Por Status">
+          <MetricCard title="Por Status">
             <div className="space-y-3">
               {Object.entries(stats.correspondencias_por_status)
                 .sort(([,a], [,b]) => b - a)
@@ -391,7 +362,6 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Tabela de correspondências pendentes com paginação */}
       {pendentes.length > 0 && (
         <div className="bg-gray-800 rounded-2xl border border-gray-700">
           <div className="p-6 border-b border-gray-700">
@@ -448,7 +418,6 @@ function Dashboard() {
             </table>
           </div>
 
-          {/* Componente de Paginação */}
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

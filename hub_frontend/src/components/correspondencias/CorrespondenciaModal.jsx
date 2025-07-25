@@ -152,9 +152,9 @@ function ClienteCaixaAutocomplete({ value, onChange, clientes, caixasPostais, pl
 
 function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClose, onSave }) {
   const getBrasiliaDateTime = () => {
-    const offset = -3 * 60 * 60 * 1000;
-    const now = new Date(Date.now() + offset);
-    return now.toISOString().slice(0, 16);
+    const brasiliaTimeZone = -3 * 60;
+    const brasiliaTime = new Date(Date.now() + brasiliaTimeZone * 60 * 1000);
+    return brasiliaTime.toISOString().slice(0, 16);
   };
 
   const [formData, setFormData] = useState({
@@ -165,7 +165,7 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
     codigo_rastreamento: correspondencia?.codigo_rastreamento || '',
     observacoes: correspondencia?.observacoes || '',
     data_recebimento: correspondencia?.data_recebimento 
-      ? new Date(correspondencia.data_recebimento).toISOString().slice(0, 16)
+      ? correspondencia.data_recebimento.slice(0, 16)
       : getBrasiliaDateTime()
   });
   const [loading, setLoading] = useState(false);
@@ -194,8 +194,7 @@ function CorrespondenciaModal({ correspondencia, caixasPostais, clientes, onClos
 
     try {
       const dataToSend = {
-        ...formData,
-        data_recebimento: new Date(formData.data_recebimento).toISOString()
+        ...formData
       };
 
       if (correspondencia) {

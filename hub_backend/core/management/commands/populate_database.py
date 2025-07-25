@@ -74,6 +74,7 @@ class Command(BaseCommand):
         num_pf = int(num_clientes * 0.7)
         num_pj = num_clientes - num_pf
         
+        # Criar Pessoas Físicas
         for i in range(num_pf):
             while True:
                 cpf = fake.cpf().replace('.', '').replace('-', '')
@@ -98,6 +99,7 @@ class Command(BaseCommand):
             )
             clientes_criados.append(cliente)
         
+        # Criar Pessoas Jurídicas
         for i in range(num_pj):
             while True:
                 cnpj = fake.cnpj().replace('.', '').replace('/', '').replace('-', '')
@@ -126,6 +128,22 @@ class Command(BaseCommand):
             clientes_criados.append(cliente)
 
         self.stdout.write(self.style.SUCCESS(f'✅ {len(clientes_criados)} clientes criados!'))
+        self.stdout.write(self.style.SUCCESS(f'📮 CaixasPostais criadas automaticamente via signal!'))
+
+        # Buscar as caixas criadas automaticamente e atualizar observações
+        for cliente in clientes_criados:
+            try:
+                caixa = cliente.caixa_postal
+                caixa.ativa = cliente.ativo
+                caixa.observacoes = f'Caixa postal - {cliente.tipo} - {cliente.nome[:30]}'
+                caixa.save()
+            except CaixaPostal.DoesNotExist:
+                # Fallback caso o signal não tenha funcionado
+                caixa = CaixaPostal.objects.create(
+                    cliente=cliente,
+                    ativa=cliente.ativo,
+                    observacoes=f'Caixa postal - {cliente.tipo} - {cliente.nome[:30]}'
+                )
 
         brasilia_tz = pytz.timezone('America/Sao_Paulo')
         agora_brasilia = timezone.now().astimezone(brasilia_tz)
@@ -134,12 +152,9 @@ class Command(BaseCommand):
         
         total_correspondencias = 0
         
+        # Criar correspondências para cada cliente
         for cliente in clientes_criados:
-            caixa = CaixaPostal.objects.create(
-                cliente=cliente,
-                ativa=cliente.ativo,
-                observacoes=f'Caixa postal - {cliente.tipo} - {cliente.nome[:30]}'
-            )
+            caixa = cliente.caixa_postal
             
             if not cliente.ativo:
                 num_correspondencias = random.randint(1, 5)
@@ -222,6 +237,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'✅ {total_correspondencias} correspondências criadas!'))
 
+        # Criar contratos
         clientes_com_contrato = random.sample(clientes_criados, int(len(clientes_criados) * 0.6))
         contratos_criados = 0
         
@@ -264,12 +280,14 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'✅ {contratos_criados} contratos criados!'))
 
+        # Ajustar correspondências futuras
         correspondencias_futuro = Correspondencia.objects.filter(data_recebimento__gt=agora_brasilia).count()
         if correspondencias_futuro > 0:
             Correspondencia.objects.filter(data_recebimento__gt=agora_brasilia).update(
                 data_recebimento=agora_brasilia - timedelta(days=1)
             )
 
+        # Relatório final
         total_clientes = Cliente.objects.count()
         clientes_pf = Cliente.objects.filter(tipo='PF').count()
         clientes_pj = Cliente.objects.filter(tipo='PJ').count()
